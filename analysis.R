@@ -14,10 +14,12 @@ library(nnet)
 library(matrixStats)
 library(e1071)
 library(wvtool)
+library(matrixStats)
+library(e1071)
 library(ggrepel)
 library(stargazer)
 ds_theme_set()
-options(digit = 3)
+options(digit = 4)
 
 #--------------------------------------------------------------------
 ### load data
@@ -151,3 +153,4 @@ train.data <- cbind(train.x, train.y)
 logist.fit <- multinom(train.y ~ ., data = train.data)
 pred <- predict(logist.fit, test.x)
 mean(pred == test.y)
+load('rdas/hmnist64.rda')

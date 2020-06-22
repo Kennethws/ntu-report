@@ -10,6 +10,7 @@ library(tidyverse)
 
 #--------------------------------------------------------------------
 ### read data
+hmnist28 <- read.csv('data/hmnist_28_28_L.csv', header = T)
 hmnist64 <- read.csv('data/hmnist_64_64_L.csv', header = T)
 
 #--------------------------------------------------------------------
@@ -25,10 +26,20 @@ skew <- apply(x, 1, skewness)
 kurt <- apply(x, 1, kurtosis)
 m5 <- rowSums((x - mu)^5) / ncol(x)
 
+## construct different sets of features
+
+# Lower-order histogram features
+mu <- rowMeans(hmnist64)
+variance <- rowSds(as.matrix(hmnist64))^2
+skew <- apply(hmnist64, 1, skewness)
+kurt <- apply(hmnist64, 1, kurtosis)
+m5 <- rowSums((hmnist64 - mu)^5) / ncol(hmnist64)
+
 lower.order <- cbind(mu, variance, skew, kurt, m5) %>% 
   as.data.frame() %>% 
   setNames(c('mean', 'variance', 'skewness', 'kurtosis', 
              'fifth central moment'))
+
 
 # 2. Higher-order histogram features
 higher.order <- sapply(2:11, function(i) {
@@ -57,6 +68,8 @@ hist(r$lbp.u2)
 hist(r$lbp.ori, breaks = 256)
 image(rot90c(r$lbp.u2),col = gray((0:58)/58), main="lbp.u2 (r=1, 8 points)", useRaster=TRUE,
       asp=1, axes=FALSE)
+# Local binary patterns (LBP)
+
 
 #--------------------------------------------------------------------
 ### save data
