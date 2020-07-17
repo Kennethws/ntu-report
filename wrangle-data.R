@@ -10,7 +10,6 @@ library(tidyverse)
 
 #--------------------------------------------------------------------
 ### read data
-hmnist28 <- read.csv('data/hmnist_28_28_L.csv', header = T)
 hmnist64 <- read.csv('data/hmnist_64_64_L.csv', header = T)
 
 #--------------------------------------------------------------------
@@ -19,21 +18,13 @@ hmnist64 <- read.csv('data/hmnist_64_64_L.csv', header = T)
 x <- hmnist64[,-4097]
 ## construct different sets of features
 
+
 # 1. Lower-order histogram features
 mu <- rowMeans(x)
 variance <- rowSds(as.matrix(x))^2
 skew <- apply(x, 1, skewness)
 kurt <- apply(x, 1, kurtosis)
 m5 <- rowSums((x - mu)^5) / ncol(x)
-
-## construct different sets of features
-
-# Lower-order histogram features
-mu <- rowMeans(hmnist64)
-variance <- rowSds(as.matrix(hmnist64))^2
-skew <- apply(hmnist64, 1, skewness)
-kurt <- apply(hmnist64, 1, kurtosis)
-m5 <- rowSums((hmnist64 - mu)^5) / ncol(hmnist64)
 
 lower.order <- cbind(mu, variance, skew, kurt, m5) %>% 
   as.data.frame() %>% 
@@ -50,26 +41,47 @@ higher.order <- higher.order %>%
   as.data.frame() %>% 
   setNames(paste0('central moment ', 2:11))
 
+
 # 3. Local binary patterns histogram fourier features (LBP-HF)
 # LBP
-memory.limit(size = 20000) # file too large, needs more RAM
-LBP <- lbp(as.matrix(x), r = 1)
+lbp.convert <- function(pic) {
+  input <- matrix(pic, 64, 64)
+  output <- lbp(input, r = 1)
+}
 
-# output will be the size of (m-2) * (n-2) because pixels on the 
-# edge cannot serve as centers of the neighbourhood
-lbp.uniform <- LBP$lbp.u2 # after considering uniform pattern
-lbp.origin <- LBP$lbp.ori # before considering uniform pattern
+memory.limit(size = 30000)
+LBP <- apply(as.matrix(x), 1, lbp.convert)
 
-m <- matrix(as.matrix(x[1,]), 64, 64)
-r <- lbp(m, 1)
-image(m)
-image(r$lbp.u2)
-hist(r$lbp.u2)
-hist(r$lbp.ori, breaks = 256)
-image(rot90c(r$lbp.u2),col = gray((0:58)/58), main="lbp.u2 (r=1, 8 points)", useRaster=TRUE,
-      asp=1, axes=FALSE)
-# Local binary patterns (LBP)
+lbp.uniform <- array(0, c(5000, 62*62))
+for (i in 1:5000) {
+  lbp.uniform[i,] <- as.vector(LBP[[i]]$lbp.u2)
+}
 
+# LBP feature matrix (5000 * 59)
+pick <- function(v) {
+  out <- array(0, dim = c(1, 59))
+  for (i in 1:length(v)) {
+    out[v[i] + 1] = out[v[i] + 1] + 1
+  }
+  out
+}
+
+lbp.feature <- apply(lbp.uniform, 1, pick)
+lbp.feature <- t(lbp.feature)
+
+# LBP-HF
+lbp.hf <- read.csv('data/lbp-hf.csv', header = F)
+lbp.hf <- lbp.hf %>% 
+  setNames(paste0('LBP', 1:38))
+
+# 4. Local Phase Quantization (LPQ)
+lpq.uni <- read.csv('data/LPQ-uniform.csv', header = F)
+lpq.uni <- lpq.uni %>% 
+  setNames(paste0('LPQ', 1:256))
+
+lpq.gaussian <- read.csv('data/LPQ-gaussian.csv', header = F)
+lpq.gaussian <- lpq.gaussian %>% 
+  setNames(paste0('LPQ', 1:256))
 
 #--------------------------------------------------------------------
 ### save data
@@ -77,5 +89,9 @@ save(hmnist28, file = 'rdas/hmnist28.rda')
 save(hmnist64, file = 'rdas/hmnist64.rda')
 save(lower.order, file = 'rdas/lower-order.rda')
 save(higher.order, file = 'rdas/higher-order.rda')
-save(lbp.origin, file = 'rdas/lbp-origin.rda')
 save(lbp.uniform, file = 'rdas/lbp-uniform.rda')
+save(lbp.feature, file = 'rdas/lbp-feature.rda')
+save(LBP, file = 'rdas/lbp.rda')
+save(lpq.uni, file = 'rdas/lpq-uniform.rda')
+save(lpq.gaussian, file = 'rdas/lpq-gaussian.rda')
+save(lbp.hf, file = 'rdas/lbp-hf.rda')
