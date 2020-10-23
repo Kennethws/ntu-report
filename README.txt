@@ -1,4 +1,4 @@
-## Check out "Final Report.pdf"
+# Check out "Final Report.pdf"
 
 I analyze colorectal cancer image data.
 
